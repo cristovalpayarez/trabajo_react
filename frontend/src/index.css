@@ -1,0 +1,52 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+* {
+  box-sizing: border-box;
+}
+
+html, body, #root {
+  width: 100% !important;
+  max-width: 100% !important;
+  min-height: 100vh;
+  margin: 0 !important;
+  padding: 0 !important;
+  overflow-x: hidden;
+  background-color: #0b0f19;
+  color: #ffffff;
+  font-family: "Segoe UI", "Segoe UI Variable", Arial, sans-serif;
+}
+
+body,
+button,
+input,
+textarea,
+select,
+span,
+p,
+h1,
+h2,
+h3,
+h4,
+h5,
+h6,
+a,
+li {
+  font-family: "Segoe UI", "Segoe UI Variable", "Apple Color Emoji", "Segoe UI Emoji", "Noto Color Emoji", sans-serif;
+}
+
+/* Oculta la barra de scroll pero mantiene el scroll con la rueda */
+.no-scrollbar {
+  scrollbar-width: none; /* Firefox */
+  -ms-overflow-style: none; /* IE / Edge antiguo */
+}
+.no-scrollbar::-webkit-scrollbar {
+  display: none; /* Chrome, Edge, Safari */
+}
+
+.emoji,
+.emoji-icon,
+[aria-label*="emoji"] {
+  font-family: "Apple Color Emoji", "Segoe UI Emoji", "Noto Color Emoji", sans-serif;
+}
