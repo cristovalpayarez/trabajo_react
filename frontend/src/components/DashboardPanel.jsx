@@ -15,8 +15,9 @@ import ReportesSection from './ReportesSection';
 import ClientViewSection from './ClientViewSection';
 import NexusLogo from './NexusLogo';
 import AdminTopBar from './AdminTopBar';
+import { API_BASE_URL } from '../config';
 
-const API_URL = 'http://127.0.0.1:8000';
+const API_URL = API_BASE_URL;
 
 const normalizeUserRole = (rol) => {
   const raw = String(rol || '').toLowerCase().trim();

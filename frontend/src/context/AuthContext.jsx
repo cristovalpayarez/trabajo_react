@@ -1,7 +1,9 @@
 import React, { createContext, useContext, useEffect, useState } from 'react';
 
+import { API_BASE_URL } from '../config';
+
 const AuthContext = createContext(null);
-const API_URL = 'http://127.0.0.1:8000/api/auth';
+const API_URL = `${API_BASE_URL}/api/auth`;
 
 const normalizeUser = (data = {}) => {
   const rawRole = String(data.rol || '').toLowerCase().trim();
@@ -52,7 +54,7 @@ export const AuthProvider = ({ children }) => {
 
   const updateUser = async (datos) => {
     const token = localStorage.getItem('token');
-    const response = await fetch('http://127.0.0.1:8000/api/usuarios/perfil', {
+    const response = await fetch(`${API_BASE_URL}/api/usuarios/perfil`, {
       method: 'PUT',
       headers: {
         'Content-Type': 'application/json',

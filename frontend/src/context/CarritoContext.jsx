@@ -1,7 +1,9 @@
 import React, { createContext, useContext, useEffect, useState, useCallback } from 'react';
 
-const API_URL = 'http://127.0.0.1:8000/api/carrito';
-const CHECKOUT_URL = 'http://127.0.0.1:8000/api/checkout/';
+import { API_BASE_URL } from '../config';
+
+const API_URL = `${API_BASE_URL}/api/carrito`;
+const CHECKOUT_URL = `${API_BASE_URL}/api/checkout/`;
 
 const CarritoContext = createContext(null);
 

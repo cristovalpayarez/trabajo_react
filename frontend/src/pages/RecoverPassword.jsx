@@ -3,7 +3,9 @@ import { Link, useNavigate } from 'react-router-dom';
 import Input from '../components/Input';
 import Button from '../components/Button';
 
-const API_URL = 'http://127.0.0.1:8000/api/auth';
+import { API_BASE_URL } from '../config';
+
+const API_URL = `${API_BASE_URL}/api/auth`;
 
 const RecoverPassword = () => {
   const [step, setStep] = useState(1);

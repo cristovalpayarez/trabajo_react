@@ -25,9 +25,9 @@ const ESTADO_ICONS = {
   Cancelado: '❌',
 };
 
-const API_URL = 'http://127.0.0.1:8000';
+import { API_BASE_URL } from '../config';
 
-const OrdersList = ({ onOrderClick, role, ordersUrl = `${API_URL}/api/pedidos` }) => {
+const OrdersList = ({ onOrderClick, role, ordersUrl = `${API_BASE_URL}/api/pedidos` }) => {
   const { user } = useAuth();
   const [orders, setOrders] = useState([]);
   const [loading, setLoading] = useState(true);

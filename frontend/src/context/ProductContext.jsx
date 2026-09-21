@@ -1,7 +1,9 @@
 import React, { createContext, useContext, useEffect, useState } from 'react';
 
+import { API_BASE_URL } from '../config';
+
 const ProductContext = createContext();
-const API_URL = 'http://127.0.0.1:8000/api/productos';
+const API_URL = `${API_BASE_URL}/api/productos`;
 
 const normalizeProduct = (product = {}) => ({
   id: product.id,

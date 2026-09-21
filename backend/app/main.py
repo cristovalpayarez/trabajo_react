@@ -32,9 +32,11 @@ app = FastAPI(
 # MIDDLEWARES
 # ==========================================
 
+# Orígenes permitidos: se leen de CORS_ORIGINS (separados por comas).
+# Local: "*". En producción, pon la URL de tu frontend en Railway.
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["*"],
+    allow_origins=settings.cors_origins,
     allow_credentials=False,
     allow_methods=["*"],
     allow_headers=["*"],

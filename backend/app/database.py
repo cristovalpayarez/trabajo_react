@@ -26,12 +26,17 @@ class Settings(BaseSettings):
     # Servidor
     PORT: int = 3000
 
-    # Base de datos
+    # Base de datos: en producción (Railway) se provee DATABASE_URL completa.
+    # En desarrollo local se pueden usar las variables sueltas (DB_HOST, etc.).
+    DATABASE_URL: str = ""
     DB_HOST: str = "localhost"
     DB_USER: str = "root"
     DB_PASSWORD: str = ""
     DB_NAME: str = "tienda_tecnologica"
     DB_PORT: int = 3306
+
+    # CORS: orígenes permitidos, separados por comas. "*" permite cualquiera.
+    CORS_ORIGINS: str = "*"
 
     # JWT
     JWT_SECRET: str = "clave_secreta_temporal"
@@ -48,10 +53,24 @@ class Settings(BaseSettings):
 
     @property
     def database_url(self) -> str:
+        # 1) Si existe DATABASE_URL (Railway) se usa tal cual, normalizando
+        #    esquemas de MySQL que SQLAlchemy no entiende directamente.
+        if self.DATABASE_URL:
+            url = self.DATABASE_URL.strip()
+            if url.startswith("mysql://"):
+                url = url.replace("mysql://", "mysql+pymysql://", 1)
+            elif url.startswith("mysql2://"):
+                url = url.replace("mysql2://", "mysql+pymysql://", 1)
+            return url
+        # 2) Fallback: construirla desde las variables sueltas (local)
         return (
             f"mysql+pymysql://{self.DB_USER}:{self.DB_PASSWORD}"
             f"@{self.DB_HOST}:{self.DB_PORT}/{self.DB_NAME}?charset=utf8mb4"
         )
+
+    @property
+    def cors_origins(self) -> list[str]:
+        return [origen.strip() for origen in self.CORS_ORIGINS.split(",") if origen.strip()]
 
     @property
     def jwt_expires_seconds(self) -> int:

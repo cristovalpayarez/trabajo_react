@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
 import Notification from './Notification';
+import { API_BASE_URL } from '../config';
 
 const RegisterModal = ({ isOpen, onClose }) => {
   const [formData, setFormData] = useState({
@@ -115,7 +116,7 @@ const RegisterModal = ({ isOpen, onClose }) => {
       try {
         console.log("Enviando datos al backend...", formData);
 
-        const response = await fetch('http://127.0.0.1:8000/api/auth/register', {
+        const response = await fetch(`${API_BASE_URL}/api/auth/register`, {
           method: 'POST',
           headers: {
             'Content-Type': 'application/json',

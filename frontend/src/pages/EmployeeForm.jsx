@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { Link, Navigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
+import { API_BASE_URL } from '../config';
 
 const initialForm = { nombre: '', apellido: '', tipo_documento: 'CC', numero_documento: '', direccion: '', telefono: '', correo: '', password: '' };
 
@@ -24,7 +25,7 @@ const EmployeeForm = () => {
     }
 
     try {
-      const response = await fetch('http://127.0.0.1:8000/api/auth/register/empleado', {
+      const response = await fetch(`${API_BASE_URL}/api/auth/register/empleado`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',

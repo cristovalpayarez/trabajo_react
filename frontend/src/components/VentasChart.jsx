@@ -2,9 +2,11 @@ import React, { useEffect, useState } from 'react';
 import {
   BarChart, Bar, LineChart, Line, AreaChart, Area, PieChart, Pie, Cell,
   XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Legend,
-} from 'recharts';
+} from 'recharts';import { API_BASE_URL } from '../config';
 
-const API_URL = 'http://127.0.0.1:8000';
+const API_URL = API_BASE_URL;
+
+
 
 const COLORS = ['#22d3ee', '#a78bfa', '#34d399', '#fbbf24', '#f472b6', '#fb923c'];
 

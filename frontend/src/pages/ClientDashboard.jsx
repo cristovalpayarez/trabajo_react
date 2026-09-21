@@ -4,6 +4,7 @@ import OrdersList from '../components/OrdersList';
 import Carrito from '../components/Carrito';
 import PQRSection from '../components/PQRSection';
 import FacturasSection from '../components/FacturasSection';
+import { API_BASE_URL } from '../config';
 
 const ClientDashboard = () => {
   const { user, updateUser } = useAuth();
@@ -157,7 +158,7 @@ const CarritoResumen = ({ onIrAlCarrito }) => {
       return;
     }
 
-    fetch('http://127.0.0.1:8000/api/carrito', {
+    fetch(`${API_BASE_URL}/api/carrito`, {
       headers: { Authorization: 'Bearer ' + token },
     })
       .then((res) => res.json())
