@@ -1,20 +1,36 @@
 """
-Envío del correo con el código de recuperación de contraseña.
+Envío de correo: código de recuperación de contraseña y factura en PDF.
 
-Usa el mismo servicio (Gmail SMTP) y las mismas credenciales EMAIL_USER /
-EMAIL_PASSWORD que ya estaban configuradas en el backend anterior. Si el
-envío falla (o no hay credenciales), el código igual queda guardado en la
-base de datos y se imprime en la consola del servidor, para no bloquear
-las pruebas locales.
+Usa SMTP (por defecto Gmail) con las credenciales EMAIL_USER /
+EMAIL_PASSWORD. El host, puerto y TLS son configurables (EMAIL_HOST,
+EMAIL_PORT, EMAIL_STARTTLS). Si el envío falla (o no hay credenciales),
+el código igual queda guardado en la base de datos y se imprime en la
+consola del servidor, para no bloquear las pruebas locales.
 """
 
 import smtplib
+from email.mime.base import MIMEBase
+from email.encoders import encode_base64
 from email.mime.multipart import MIMEMultipart
 from email.mime.text import MIMEText
 
 from app.database import get_settings
 
 settings = get_settings()
+
+
+def correo_configurado() -> bool:
+    """True si hay credenciales de correo en la configuración."""
+    return bool(settings.EMAIL_USER and settings.EMAIL_PASSWORD)
+
+
+def _crear_conexion_smtp() -> smtplib.SMTP:
+    """Abre la conexión SMTP y hace login con las credenciales configuradas."""
+    servidor = smtplib.SMTP(settings.EMAIL_HOST, settings.EMAIL_PORT, timeout=15)
+    if settings.EMAIL_STARTTLS:
+        servidor.starttls()
+    servidor.login(settings.EMAIL_USER, settings.EMAIL_PASSWORD)
+    return servidor
 
 
 def _plantilla_html(nombre: str, codigo: str) -> str:
@@ -36,10 +52,17 @@ def _plantilla_html(nombre: str, codigo: str) -> str:
     """
 
 
-def enviar_codigo_recuperacion(destinatario: str, nombre: str, codigo: str) -> None:
-    if not settings.EMAIL_USER or not settings.EMAIL_PASSWORD:
+def enviar_codigo_recuperacion(destinatario: str, nombre: str, codigo: str) -> bool:
+    """Envía el código de recuperación.
+
+    Devuelve True solo si el correo salió realmente. Si no hay credenciales
+    o el envío falla, devuelve False e imprime un mensaje de respaldo en
+    consola (el código también queda guardado en la base de datos).
+    """
+    if not correo_configurado():
         print(f"[email] EMAIL_USER/EMAIL_PASSWORD no configurados. Código para {destinatario}: {codigo}")
-        return
+        print("[email] Configura EMAIL_USER y EMAIL_PASSWORD en backend/.env (local) o en las Variables de Railway.")
+        return False
 
     mensaje = MIMEMultipart("alternative")
     mensaje["Subject"] = "Código para recuperar tu contraseña"
@@ -48,14 +71,14 @@ def enviar_codigo_recuperacion(destinatario: str, nombre: str, codigo: str) -> N
     mensaje.attach(MIMEText(_plantilla_html(nombre, codigo), "html"))
 
     try:
-        with smtplib.SMTP("smtp.gmail.com", 587, timeout=10) as servidor:
-            servidor.starttls()
-            servidor.login(settings.EMAIL_USER, settings.EMAIL_PASSWORD)
+        with _crear_conexion_smtp() as servidor:
             servidor.sendmail(settings.EMAIL_USER, destinatario, mensaje.as_string())
         print(f"[email] Código de recuperación enviado a {destinatario}")
+        return True
     except Exception as error:  # noqa: BLE001 - no debe tumbar el endpoint
         print(f"[email] No se pudo enviar el correo a {destinatario}: {error}")
         print(f"[email] Código de recuperación (respaldo en consola): {codigo}")
+        return False
 
 
 def enviar_factura_pdf(destinatario: str, nombre: str, pedido_id: int, total: float) -> bool:
@@ -65,9 +88,9 @@ def enviar_factura_pdf(destinatario: str, nombre: str, pedido_id: int, total: fl
     credenciales EMAIL_USER/EMAIL_PASSWORD o si el envío falló (así el
     checkout sabe si debe marcar factura_enviada).
     """
-    if not settings.EMAIL_USER or not settings.EMAIL_PASSWORD:
+    if not correo_configurado():
         print(f"[email] EMAIL_USER/EMAIL_PASSWORD no configurados. Factura pendiente para {destinatario}")
-        print(f"[email] Para enviar facturas por correo, agrega EMAIL_USER y EMAIL_PASSWORD en backend/.env")
+        print("[email] Para enviar facturas por correo, agrega EMAIL_USER y EMAIL_PASSWORD en backend/.env")
         return False
 
     from app.factura_pdf import generar_factura_pdf
@@ -108,12 +131,9 @@ def enviar_factura_pdf(destinatario: str, nombre: str, pedido_id: int, total: fl
 
     mensaje.attach(MIMEText(cuerpo_html, "html"))
 
-    from email.mime.base import MIMEBase
-    from email import encoders
-
     parte_pdf = MIMEBase("application", "pdf")
     parte_pdf.set_payload(pdf_bytes)
-    encoders.encode_base64(parte_pdf)
+    encode_base64(parte_pdf)
     parte_pdf.add_header(
         "Content-Disposition",
         f"attachment; filename=factura_{pedido_id}.pdf",
@@ -121,9 +141,7 @@ def enviar_factura_pdf(destinatario: str, nombre: str, pedido_id: int, total: fl
     mensaje.attach(parte_pdf)
 
     try:
-        with smtplib.SMTP("smtp.gmail.com", 587, timeout=15) as servidor:
-            servidor.starttls()
-            servidor.login(settings.EMAIL_USER, settings.EMAIL_PASSWORD)
+        with _crear_conexion_smtp() as servidor:
             servidor.sendmail(settings.EMAIL_USER, destinatario, mensaje.as_string())
         print(f"[email] Factura #{pedido_id} enviada a {destinatario}")
         return True

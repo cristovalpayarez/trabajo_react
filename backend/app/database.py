@@ -43,7 +43,11 @@ class Settings(BaseSettings):
     JWT_EXPIRES_IN: str = "2h"
     JWT_ALGORITHM: str = "HS256"
 
-    # Correo (recuperación de contraseña)
+    # Correo (recuperación de contraseña). Por defecto Gmail SMTP, pero el
+    # host/puerto/TLS son configurables para otros proveedores de correo.
+    EMAIL_HOST: str = "smtp.gmail.com"
+    EMAIL_PORT: int = 587
+    EMAIL_STARTTLS: bool = True
     EMAIL_USER: str = ""
     EMAIL_PASSWORD: str = ""
 

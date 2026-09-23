@@ -88,8 +88,13 @@ const RecoverPassword = () => {
         );
       }
 
+      if (data.correo_no_configurado) {
+        setError(data.mensaje);
+        return;
+      }
+
       setMessage(
-        'Se ha enviado un código de recuperación a tu correo electrónico.'
+        'Se ha enviado un código de recuperación a tu correo electrónico. Revisa también la carpeta de spam o correo no deseado.'
       );
 
       setStep(2);

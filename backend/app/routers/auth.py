@@ -14,7 +14,7 @@ from sqlalchemy import or_
 from sqlalchemy.orm import Session
 
 from app.database import get_db
-from app.email_utils import enviar_codigo_recuperacion
+from app.email_utils import correo_configurado, enviar_codigo_recuperacion
 from app.models import Rol, Usuario
 from app.schemas import (
     ForgotPasswordRequest,
@@ -132,6 +132,18 @@ def login(datos: LoginRequest, db: Session = Depends(get_db)):
 @router.post("/forgot-password")
 def forgot_password(datos: ForgotPasswordRequest, db: Session = Depends(get_db)):
     correo_normalizado = datos.correo.strip().lower()
+
+    # Si el envío de correo no está configurado en el servidor, avisamos con
+    # un mensaje global (no revela si el correo existe o no).
+    if not correo_configurado():
+        return {
+            "mensaje": (
+                "El envío de correo no está configurado en este servidor. "
+                "Contacta al administrador para recuperar tu contraseña."
+            ),
+            "correo_no_configurado": True,
+        }
+
     usuario = db.query(Usuario).filter(Usuario.correo == correo_normalizado).first()
 
     mensaje_generico = {"mensaje": "Si el correo está registrado, recibirás un código de recuperación."}
@@ -145,7 +157,12 @@ def forgot_password(datos: ForgotPasswordRequest, db: Session = Depends(get_db))
     usuario.reset_code_expires = datetime.now(timezone.utc) + timedelta(minutes=10)
     db.commit()
 
-    enviar_codigo_recuperacion(usuario.correo, usuario.nombre, codigo)
+    enviado = enviar_codigo_recuperacion(usuario.correo, usuario.nombre, codigo)
+    if not enviado:
+        print(
+            f"[auth] El correo de recuperación NO se entregó a {usuario.correo}. "
+            "Revisa EMAIL_USER/EMAIL_PASSWORD y los logs [email] del servidor."
+        )
 
     return mensaje_generico
 
