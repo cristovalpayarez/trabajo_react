@@ -5,6 +5,7 @@ import { useAuth } from '../context/AuthContext';
 import { useProducts } from '../context/ProductContext';
 
 import OrdersList from './OrdersList';
+import Carrito from './Carrito';
 import Notification from './Notification';
 import DashboardCards from './DashboardCards';
 import VentasChart from './VentasChart';
@@ -40,6 +41,16 @@ const NAV_ITEMS = [
   { key: 'vista-usuario', label: 'Vista de usuario', icon: '🧑‍💻' },
 ];
 
+// Menú específico del cliente: mismo diseño que los paneles internos,
+// pero solo con las funciones que le corresponden.
+const CUSTOMER_NAV_ITEMS = [
+  { key: 'dashboard', label: 'Inicio', icon: '🏠' },
+  { key: 'orders', label: 'Mis Pedidos', icon: '📦' },
+  { key: 'cart', label: 'Mi Carrito', icon: '🛒' },
+  { key: 'facturas', label: 'Mis Facturas', icon: '📄' },
+  { key: 'pqr', label: 'PQR', icon: '📋' },
+];
+
 const ROLE_TEXTS = {
   admin: {
     title: 'Bienvenido, Administrador',
@@ -53,6 +64,12 @@ const ROLE_TEXTS = {
     topBar: 'Logueado como Empleado',
     gradientId: 'emp-side',
   },
+  customer: {
+    title: 'Bienvenido, Cliente',
+    subtitle: 'Tu espacio personal en NEXUS TECH',
+    topBar: 'Logueado como Cliente',
+    gradientId: 'customer-side',
+  },
 };
 
 /**
@@ -62,11 +79,12 @@ const ROLE_TEXTS = {
  * eliminar usuarios y crear empleados).
  */
 const DashboardPanel = ({ role = 'admin' }) => {
-  const { user, logout } = useAuth();
+  const { user, logout, updateUser } = useAuth();
   const navigate = useNavigate();
   const { products, addProduct, updateProduct, deleteProduct } = useProducts();
 
   const esAdmin = role === 'admin';
+  const esCliente = role === 'customer';
   const textos = ROLE_TEXTS[role] || ROLE_TEXTS.admin;
 
   const [activeSection, setActiveSection] = useState('dashboard');
@@ -83,6 +101,16 @@ const DashboardPanel = ({ role = 'admin' }) => {
   const [users, setUsers] = useState([]);
   const [notification, setNotification] = useState(null);
   const [pendingDeleteProduct, setPendingDeleteProduct] = useState(null);
+
+  const [showCarrito, setShowCarrito] = useState(false);
+  const [perfilForm, setPerfilForm] = useState({
+    nombre: user?.nombre || '',
+    apellido: user?.apellido || '',
+    direccion: user?.direccion || '',
+    telefono: user?.telefono || '',
+  });
+  const [perfilMensaje, setPerfilMensaje] = useState('');
+  const [perfilError, setPerfilError] = useState('');
 
   const showNotification = (type, message) => setNotification({ type, message });
 
@@ -117,7 +145,9 @@ const DashboardPanel = ({ role = 'admin' }) => {
   };
 
   useEffect(() => {
-    cargarUsuarios();
+    if (role !== 'customer') {
+      cargarUsuarios();
+    }
   }, [role]);
 
   const handleUserStatus = async (userItem) => {
@@ -292,6 +322,29 @@ const DashboardPanel = ({ role = 'admin' }) => {
     navigate('/login');
   };
 
+  const handlePerfilChange = (e) => {
+    const { name, value } = e.target;
+    setPerfilForm((prev) => ({ ...prev, [name]: value }));
+  };
+
+  const handlePerfilSubmit = async (e) => {
+    e.preventDefault();
+    setPerfilMensaje('');
+    setPerfilError('');
+
+    if (typeof updateUser !== 'function') {
+      setPerfilError('No se pudo actualizar los datos.');
+      return;
+    }
+
+    try {
+      await updateUser(perfilForm);
+      setPerfilMensaje('Datos actualizados correctamente.');
+    } catch (err) {
+      setPerfilError(err.message || 'Error al actualizar los datos.');
+    }
+  };
+
   const getStatusStyle = (status) => {
     switch (status) {
       case 'Activo':
@@ -338,6 +391,125 @@ const DashboardPanel = ({ role = 'admin' }) => {
       <div className="rounded-3xl border border-slate-700 bg-slate-900/80 p-6 shadow-[0_0_30px_rgba(15,23,42,0.45)]">
         <h2 className="mb-4 text-xl font-bold text-white">Resumen rápido</h2>
         <OrdersList role={role} />
+      </div>
+    </div>
+  );
+
+  const renderCustomerHome = () => (
+    <div className="space-y-8">
+      <div>
+        <p className="text-sm uppercase tracking-[0.28em] text-cyan-400">Panel</p>
+        <h1 className="mt-2 text-4xl font-black text-white">{textos.title}</h1>
+        <p className="mt-1 text-slate-400">{textos.subtitle}</p>
+      </div>
+
+      <div className="grid grid-cols-1 gap-6 lg:grid-cols-2">
+        <div className="rounded-3xl border border-cyan-500/20 bg-slate-900/80 p-6 shadow-[0_0_30px_rgba(34,211,238,0.08)]">
+          <h2 className="mb-4 text-xl font-bold text-white">Mis Datos</h2>
+          {perfilMensaje && (
+            <p className="mb-3 text-sm font-bold text-emerald-400">{perfilMensaje}</p>
+          )}
+          {perfilError && <p className="mb-3 text-sm font-bold text-rose-400">{perfilError}</p>}
+          <p className="mb-4 text-sm text-slate-400">
+            <strong>Correo:</strong> {user?.email || '—'}{' '}
+            <span className="text-xs">(no editable)</span>
+          </p>
+          <form onSubmit={handlePerfilSubmit} className="space-y-3">
+            <label className="flex flex-col gap-2 text-sm text-slate-300">
+              Nombre
+              <input
+                type="text"
+                name="nombre"
+                value={perfilForm.nombre}
+                onChange={handlePerfilChange}
+                maxLength={50}
+                required
+                className="rounded-xl border border-slate-700 bg-slate-950 p-3 text-white outline-none focus:border-cyan-400"
+              />
+            </label>
+            <label className="flex flex-col gap-2 text-sm text-slate-300">
+              Apellido
+              <input
+                type="text"
+                name="apellido"
+                value={perfilForm.apellido}
+                onChange={handlePerfilChange}
+                maxLength={50}
+                required
+                className="rounded-xl border border-slate-700 bg-slate-950 p-3 text-white outline-none focus:border-cyan-400"
+              />
+            </label>
+            <label className="flex flex-col gap-2 text-sm text-slate-300">
+              Dirección
+              <input
+                type="text"
+                name="direccion"
+                value={perfilForm.direccion}
+                onChange={handlePerfilChange}
+                maxLength={150}
+                placeholder="Dirección de envío"
+                className="rounded-xl border border-slate-700 bg-slate-950 p-3 text-white outline-none focus:border-cyan-400"
+              />
+            </label>
+            <label className="flex flex-col gap-2 text-sm text-slate-300">
+              Teléfono
+              <input
+                type="text"
+                name="telefono"
+                value={perfilForm.telefono}
+                onChange={handlePerfilChange}
+                placeholder="Teléfono de contacto"
+                className="rounded-xl border border-slate-700 bg-slate-950 p-3 text-white outline-none focus:border-cyan-400"
+              />
+            </label>
+            <button
+              type="submit"
+              className="w-full rounded-xl bg-cyan-400 px-5 py-3 font-bold text-slate-950 transition hover:bg-cyan-300"
+            >
+              Guardar Cambios
+            </button>
+          </form>
+        </div>
+
+        <div className="space-y-4">
+          <div className="rounded-3xl border border-violet-500/20 bg-slate-900/80 p-6 shadow-[0_0_30px_rgba(139,92,246,0.08)]">
+            <h2 className="mb-4 text-xl font-bold text-white">Accesos Rápidos</h2>
+            <div className="space-y-3">
+              <button
+                onClick={() => setActiveSection('orders')}
+                className="w-full rounded-xl border border-slate-700 bg-slate-950 p-4 text-left transition hover:border-cyan-400/50"
+              >
+                <span className="text-lg">📦</span>
+                <p className="mt-1 font-bold text-white">Mis Pedidos</p>
+                <p className="text-xs text-slate-400">Consulta el estado de tus compras</p>
+              </button>
+              <button
+                onClick={() => setActiveSection('cart')}
+                className="w-full rounded-xl border border-slate-700 bg-slate-950 p-4 text-left transition hover:border-cyan-400/50"
+              >
+                <span className="text-lg">🛒</span>
+                <p className="mt-1 font-bold text-white">Mi Carrito</p>
+                <p className="text-xs text-slate-400">Revisa y finaliza tus compras</p>
+              </button>
+              <button
+                onClick={() => setActiveSection('facturas')}
+                className="w-full rounded-xl border border-slate-700 bg-slate-950 p-4 text-left transition hover:border-violet-400/50"
+              >
+                <span className="text-lg">📄</span>
+                <p className="mt-1 font-bold text-white">Mis Facturas</p>
+                <p className="text-xs text-slate-400">Descarga tus facturas en PDF</p>
+              </button>
+              <button
+                onClick={() => setActiveSection('pqr')}
+                className="w-full rounded-xl border border-slate-700 bg-slate-950 p-4 text-left transition hover:border-rose-400/50"
+              >
+                <span className="text-lg">📋</span>
+                <p className="mt-1 font-bold text-white">PQR</p>
+                <p className="text-xs text-slate-400">Peticiones, quejas y reclamos</p>
+              </button>
+            </div>
+          </div>
+        </div>
       </div>
     </div>
   );
@@ -585,6 +757,43 @@ const DashboardPanel = ({ role = 'admin' }) => {
   );
 
   const renderSection = () => {
+    if (esCliente) {
+      switch (activeSection) {
+        case 'dashboard':
+          return renderCustomerHome();
+        case 'orders':
+          return (
+            <div className="space-y-6">
+              <h2 className="text-3xl font-bold text-white">Mis Pedidos</h2>
+              <OrdersList role="customer" />
+            </div>
+          );
+        case 'cart':
+          return (
+            <div className="space-y-6">
+              <h2 className="text-3xl font-bold text-white">Mi Carrito</h2>
+              <CarritoResumen onIrAlCarrito={() => setShowCarrito(true)} />
+            </div>
+          );
+        case 'facturas':
+          return (
+            <div className="space-y-6">
+              <h2 className="text-3xl font-bold text-white">Mis Facturas</h2>
+              <FacturasSection role="customer" />
+            </div>
+          );
+        case 'pqr':
+          return (
+            <div className="space-y-6">
+              <h2 className="text-3xl font-bold text-white">PQR</h2>
+              <PQRSection role="customer" />
+            </div>
+          );
+        default:
+          return null;
+      }
+    }
+
     switch (activeSection) {
       case 'dashboard':
         return renderDashboard();
@@ -658,7 +867,7 @@ const DashboardPanel = ({ role = 'admin' }) => {
         </div>
 
         <nav className="min-h-0 flex-1 space-y-1 px-3 py-4">
-          {NAV_ITEMS.map(({ key, label, icon }) => {
+          {(esCliente ? CUSTOMER_NAV_ITEMS : NAV_ITEMS).map(({ key, label, icon }) => {
             const isActive = activeSection === key;
             return (
               <button
@@ -712,11 +921,86 @@ const DashboardPanel = ({ role = 'admin' }) => {
         <AdminTopBar
           user={user}
           roleLabel={textos.topBar}
-          onGoToUserView={() => setActiveSection('vista-usuario')}
+          onGoToUserView={esCliente ? null : () => setActiveSection('vista-usuario')}
         />
 
         <div className="mx-auto max-w-6xl px-8 py-8">{renderSection()}</div>
       </div>
+
+      {esCliente && <Carrito show={showCarrito} onClose={() => setShowCarrito(false)} />}
+    </div>
+  );
+};
+
+/* Resumen del carrito para el panel del cliente: muestra cantidad y total,
+   y un botón para abrir el modal completo del carrito. */
+const CarritoResumen = ({ onIrAlCarrito }) => {
+  const [carrito, setCarrito] = useState(null);
+  const [loading, setLoading] = useState(true);
+
+  React.useEffect(() => {
+    const token = localStorage.getItem('token');
+    if (!token) {
+      setLoading(false);
+      return;
+    }
+
+    fetch(`${API_BASE_URL}/api/carrito`, {
+      headers: { Authorization: 'Bearer ' + token },
+    })
+      .then((res) => res.json())
+      .then((data) => {
+        setCarrito(data);
+      })
+      .catch(() => {})
+      .finally(() => setLoading(false));
+  }, []);
+
+  if (loading) {
+    return (
+      <div className="flex items-center justify-center py-4">
+        <div className="h-6 w-6 animate-spin rounded-full border-2 border-cyan-400 border-t-transparent" />
+      </div>
+    );
+  }
+
+  if (!carrito || !carrito.items || carrito.items.length === 0) {
+    return (
+      <div className="rounded-3xl border border-slate-700 bg-slate-900/80 p-6 text-center">
+        <p className="text-slate-400 text-sm">Tu carrito está vacío</p>
+        <p className="mt-1 text-slate-500 text-xs">Agrega productos desde la tienda</p>
+        <button
+          onClick={() => {
+            if (typeof window !== 'undefined') {
+              window.location.href = '/';
+            }
+          }}
+          className="mt-4 rounded-xl bg-cyan-400 px-4 py-2 text-sm font-bold text-slate-950 transition hover:bg-cyan-300"
+        >
+          Ir a la tienda
+        </button>
+      </div>
+    );
+  }
+
+  return (
+    <div className="rounded-3xl border border-cyan-500/20 bg-slate-900/80 p-6 shadow-[0_0_30px_rgba(34,211,238,0.08)]">
+      <div className="flex justify-between text-sm">
+        <span className="text-slate-400">Productos</span>
+        <span className="font-semibold text-white">{carrito.cantidad_total}</span>
+      </div>
+      <div className="mt-2 flex justify-between text-sm">
+        <span className="text-slate-400">Total</span>
+        <span className="font-bold text-cyan-300">
+          ${Number(carrito.total || 0).toLocaleString('es-CO')}
+        </span>
+      </div>
+      <button
+        onClick={onIrAlCarrito}
+        className="mt-4 w-full rounded-xl bg-gradient-to-r from-cyan-400 to-sky-500 px-4 py-2.5 font-bold text-slate-950 transition hover:scale-[1.02]"
+      >
+        Ir al carrito
+      </button>
     </div>
   );
 };

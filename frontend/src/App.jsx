@@ -32,7 +32,7 @@ import Footer from './components/Footer';
 
 // Rutas que tienen su propio layout (sidebar) y no deben mostrar
 // el Header ni el Footer del sitio público.
-const PANEL_ROUTE_PREFIXES = ['/admin', '/empleado'];
+const PANEL_ROUTE_PREFIXES = ['/admin', '/empleado', '/client-dashboard'];
 
 function AppContent() {
   const location = useLocation();
