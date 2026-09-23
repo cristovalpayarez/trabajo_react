@@ -92,7 +92,14 @@ const Chatbot = () => {
         className="fixed z-50 flex h-14 w-14 items-center justify-center rounded-full bg-gradient-to-br from-cyan-500 to-violet-600 text-white shadow-lg transition hover:scale-110 hover:shadow-xl"
         title="Chat con asistente virtual"
       >
-        <span className="text-2xl">{isOpen ? '✕' : '💬'}</span>
+        {isOpen ? (
+          <span className="text-2xl">✕</span>
+        ) : (
+          <svg viewBox="0 0 24 24" className="h-6 w-6" fill="currentColor" aria-hidden="true">
+            <path d="M12 2.5l1.9 5.6 5.6 1.9-5.6 1.9L12 17.5l-1.9-5.6-5.6-1.9 5.6-1.9z" />
+            <path d="M18.5 15.5l.9 2.6 2.6.9-2.6.9-.9 2.6-.9-2.6-2.6-.9 2.6-.9z" />
+          </svg>
+        )}
         {!isOpen && (
           <span className="absolute -top-1 -right-1 h-3.5 w-3.5 rounded-full border-2 border-[#0a1226] bg-emerald-400" />
         )}
@@ -106,8 +113,11 @@ const Chatbot = () => {
         >
           {/* Header */}
           <div className="flex items-center gap-3 border-b border-white/10 bg-gradient-to-r from-cyan-600/20 to-violet-600/20 px-4 py-3">
-            <div className="flex h-9 w-9 items-center justify-center rounded-full bg-gradient-to-br from-cyan-400 to-violet-500 text-sm font-bold text-white">
-              NT
+            <div className="flex h-9 w-9 items-center justify-center rounded-full bg-gradient-to-br from-cyan-400 to-violet-500 text-white">
+              <svg viewBox="0 0 24 24" className="h-5 w-5" fill="currentColor" aria-hidden="true">
+                <path d="M12 2.5l1.9 5.6 5.6 1.9-5.6 1.9L12 17.5l-1.9-5.6-5.6-1.9 5.6-1.9z" />
+                <path d="M18.5 15.5l.9 2.6 2.6.9-2.6.9-.9 2.6-.9-2.6-2.6-.9 2.6-.9z" />
+              </svg>
             </div>
             <div>
               <p className="text-sm font-bold text-white">NEXUS TECH</p>
