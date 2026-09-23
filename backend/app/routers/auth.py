@@ -132,18 +132,6 @@ def login(datos: LoginRequest, db: Session = Depends(get_db)):
 @router.post("/forgot-password")
 def forgot_password(datos: ForgotPasswordRequest, db: Session = Depends(get_db)):
     correo_normalizado = datos.correo.strip().lower()
-
-    # Si el envío de correo no está configurado en el servidor, avisamos con
-    # un mensaje global (no revela si el correo existe o no).
-    if not correo_configurado():
-        return {
-            "mensaje": (
-                "El envío de correo no está configurado en este servidor. "
-                "Contacta al administrador para recuperar tu contraseña."
-            ),
-            "correo_no_configurado": True,
-        }
-
     usuario = db.query(Usuario).filter(Usuario.correo == correo_normalizado).first()
 
     mensaje_generico = {"mensaje": "Si el correo está registrado, recibirás un código de recuperación."}
@@ -157,12 +145,35 @@ def forgot_password(datos: ForgotPasswordRequest, db: Session = Depends(get_db))
     usuario.reset_code_expires = datetime.now(timezone.utc) + timedelta(minutes=10)
     db.commit()
 
+    # Caso 1: no hay credenciales de correo en el servidor. El código queda
+    # guardado en la base de datos y se muestra en la respuesta para que el
+    # flujo funcione aunque el SMTP no esté configurado (modo demostración).
+    if not correo_configurado():
+        print(f"[auth] Sin credenciales de correo. Código para {usuario.correo}: {codigo}")
+        return {
+            "mensaje": (
+                "El envío automático de correo no está configurado en este servidor. "
+                "Usa el código temporal que se muestra abajo para continuar (modo demostración)."
+            ),
+            "correo_enviado": False,
+            "codigo_temporal": codigo,
+        }
+
+    # Caso 2: hay credenciales, se intenta enviar el correo.
     enviado = enviar_codigo_recuperacion(usuario.correo, usuario.nombre, codigo)
     if not enviado:
         print(
             f"[auth] El correo de recuperación NO se entregó a {usuario.correo}. "
             "Revisa EMAIL_USER/EMAIL_PASSWORD y los logs [email] del servidor."
         )
+        return {
+            "mensaje": (
+                "No se pudo enviar el código por correo en este momento. "
+                "Usa el código temporal que se muestra abajo para continuar (modo demostración)."
+            ),
+            "correo_enviado": False,
+            "codigo_temporal": codigo,
+        }
 
     return mensaje_generico
 

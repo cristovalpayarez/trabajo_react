@@ -88,8 +88,11 @@ const RecoverPassword = () => {
         );
       }
 
-      if (data.correo_no_configurado) {
-        setError(data.mensaje);
+      if (data.codigo_temporal) {
+        setMessage(
+          `${data.mensaje || 'No se pudo enviar el código por correo.'} Tu código temporal es: ${data.codigo_temporal}`
+        );
+        setStep(2);
         return;
       }
 
