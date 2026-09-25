@@ -51,12 +51,6 @@ class Settings(BaseSettings):
     EMAIL_USER: str = ""
     EMAIL_PASSWORD: str = ""
 
-    # Recuperación de contraseña: con True el código se muestra también en la
-    # pantalla (modo demostración), útil cuando la cuenta usa un correo de
-    # prueba que no es un buzón real. Ponlo en False para que el código solo
-    # viaje por correo electrónico.
-    RECUPERACION_MODO_DEMO: bool = True
-
     # IA (Chatbot) — la clave vive SOLO en el .env, nunca en el código
     GEMINI_API_KEY: str = ""
     GEMINI_MODEL: str = "gemini-2.0-flash"

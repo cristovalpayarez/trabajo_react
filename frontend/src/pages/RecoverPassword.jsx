@@ -18,7 +18,6 @@ const RecoverPassword = () => {
 
   const [error, setError] = useState('');
   const [message, setMessage] = useState('');
-  const [codigoDemo, setCodigoDemo] = useState('');
 
   const [loading, setLoading] = useState(false);
 
@@ -87,27 +86,6 @@ const RecoverPassword = () => {
           data.mensaje ||
           'No se pudo enviar el código.'
         );
-      }
-
-      // El backend avisa cuando el correo no corresponde a ninguna cuenta.
-      // Antes el frontend mostraba "código enviado" y el usuario esperaba
-      // para siempre un correo que nunca iba a llegar.
-      if (data.correo_registrado === false) {
-        setError(
-          data.mensaje ||
-          'No hay ninguna cuenta registrada con ese correo.'
-        );
-        return;
-      }
-
-      if (data.codigo_temporal) {
-        setCodigoDemo(data.codigo_temporal);
-        setMessage(
-          data.mensaje ||
-          'Usa el código temporal para continuar.'
-        );
-        setStep(2);
-        return;
       }
 
       setMessage(
@@ -375,20 +353,6 @@ const RecoverPassword = () => {
             className="space-y-4"
           >
 
-            {codigoDemo && (
-              <div className="p-4 bg-neon-purple/15 border-2 border-neon-purple rounded-xl text-center">
-
-                <p className="text-xs text-gray-300 font-bold uppercase tracking-wider mb-1">
-                  Código temporal (modo demostración)
-                </p>
-
-                <p className="text-3xl font-extrabold tracking-[0.3em] text-neon-purple">
-                  {codigoDemo}
-                </p>
-
-              </div>
-            )}
-
             <div>
 
               <label className="block text-sm font-bold text-gray-300 mb-2">
@@ -428,7 +392,6 @@ const RecoverPassword = () => {
               onClick={() => {
                 setStep(1);
                 setCode('');
-                setCodigoDemo('');
                 setError('');
                 setMessage('');
               }}
