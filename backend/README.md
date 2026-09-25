@@ -70,6 +70,25 @@ GEMINI_MODEL=gemini-2.0-flash
 - El asistente está limitado a la tienda: si le preguntas algo ajeno a
   NEXUS TECH responde que solo puede ayudar con temas de la página.
 
+### Recuperación de contraseña
+
+El código de recuperación viaja por correo (SMTP de Gmail con `EMAIL_USER` /
+`EMAIL_PASSWORD`), pero además se muestra en la pantalla del formulario:
+
+```
+RECUPERACION_MODO_DEMO=true
+```
+
+- Con `true` (por defecto) el código también aparece en la página, porque
+  muchos correos de prueba de este proyecto **no son buzones reales**
+  (`admin@nexustech.com`, `juan@gmail.com`, ...): Gmail acepta el envío sin
+  error y después lo devuelve como rebote, así que el usuario nunca recibiría
+  nada.
+- Ponlo en `false` si quieres que el código solo llegue por correo.
+- Si el correo que se escribe **no está registrado**, la API responde con
+  `correo_registrado: false` y el formulario lo avisa, en vez de decir
+  "código enviado" y dejar al usuario esperando un correo que no existe.
+
 ## 5. Levantar el servidor
 
 ```bash

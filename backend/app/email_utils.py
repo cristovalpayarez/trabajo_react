@@ -33,6 +33,22 @@ def _crear_conexion_smtp() -> smtplib.SMTP:
     return servidor
 
 
+def _plantilla_texto(nombre: str, codigo: str) -> str:
+    """Versión en texto plano del correo.
+
+    Se envía junto a la versión HTML (multipart/alternative) porque los
+    correos que solo llevan HTML tienen más probabilidad de caer en spam.
+    """
+    return (
+        f"NEXUS TECH\n\n"
+        f"Hola {nombre},\n\n"
+        "Recibimos una solicitud para recuperar la contraseña de tu cuenta.\n"
+        f"Tu código de recuperación es: {codigo}\n\n"
+        "Este código es válido durante 10 minutos.\n"
+        "Si tú no solicitaste este cambio, puedes ignorar este mensaje.\n"
+    )
+
+
 def _plantilla_html(nombre: str, codigo: str) -> str:
     return f"""
     <div style="font-family: Arial, sans-serif; max-width: 600px; margin: auto;
@@ -68,17 +84,28 @@ def enviar_codigo_recuperacion(destinatario: str, nombre: str, codigo: str) -> b
     mensaje["Subject"] = "Código para recuperar tu contraseña"
     mensaje["From"] = f"Nexus Tech <{settings.EMAIL_USER}>"
     mensaje["To"] = destinatario
-    mensaje.attach(MIMEText(_plantilla_html(nombre, codigo), "html"))
+    mensaje.attach(MIMEText(_plantilla_texto(nombre, codigo), "plain", "utf-8"))
+    mensaje.attach(MIMEText(_plantilla_html(nombre, codigo), "html", "utf-8"))
 
     try:
         with _crear_conexion_smtp() as servidor:
-            servidor.sendmail(settings.EMAIL_USER, destinatario, mensaje.as_string())
-        print(f"[email] Código de recuperación enviado a {destinatario}")
-        return True
+            # sendmail NO lanza excepción cuando el servidor rechaza al
+            # destinatario: devuelve un diccionario {correo: (código, motivo)}.
+            # Si se ignora, el endpoint respondía "código enviado" aunque el
+            # correo nunca se hubiera aceptado.
+            rechazados = servidor.sendmail(settings.EMAIL_USER, destinatario, mensaje.as_string())
     except Exception as error:  # noqa: BLE001 - no debe tumbar el endpoint
         print(f"[email] No se pudo enviar el correo a {destinatario}: {error}")
         print(f"[email] Código de recuperación (respaldo en consola): {codigo}")
         return False
+
+    if rechazados:
+        print(f"[email] El servidor rechazó al destinatario {destinatario}: {rechazados}")
+        print(f"[email] Código de recuperación (respaldo en consola): {codigo}")
+        return False
+
+    print(f"[email] Código de recuperación enviado a {destinatario}")
+    return True
 
 
 def enviar_factura_pdf(destinatario: str, nombre: str, pedido_id: int, total: float) -> bool:
@@ -142,9 +169,14 @@ def enviar_factura_pdf(destinatario: str, nombre: str, pedido_id: int, total: fl
 
     try:
         with _crear_conexion_smtp() as servidor:
-            servidor.sendmail(settings.EMAIL_USER, destinatario, mensaje.as_string())
-        print(f"[email] Factura #{pedido_id} enviada a {destinatario}")
-        return True
+            rechazados = servidor.sendmail(settings.EMAIL_USER, destinatario, mensaje.as_string())
     except Exception as error:
         print(f"[email] Error enviando factura #{pedido_id} a {destinatario}: {error}")
         return False
+
+    if rechazados:
+        print(f"[email] El servidor rechazó al destinatario {destinatario}: {rechazados}")
+        return False
+
+    print(f"[email] Factura #{pedido_id} enviada a {destinatario}")
+    return True

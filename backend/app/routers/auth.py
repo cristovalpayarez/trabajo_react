@@ -13,7 +13,7 @@ from fastapi import APIRouter, Depends, HTTPException, status
 from sqlalchemy import or_
 from sqlalchemy.orm import Session
 
-from app.database import get_db
+from app.database import get_db, get_settings
 from app.email_utils import correo_configurado, enviar_codigo_recuperacion
 from app.models import Rol, Usuario
 from app.schemas import (
@@ -34,6 +34,8 @@ from app.security import (
 )
 
 router = APIRouter(prefix="/api/auth", tags=["Autenticación"])
+
+settings = get_settings()
 
 
 def _registrar_con_rol(datos: RegistroUsuario, nombre_rol: str, db: Session) -> Usuario:
@@ -134,48 +136,72 @@ def forgot_password(datos: ForgotPasswordRequest, db: Session = Depends(get_db))
     correo_normalizado = datos.correo.strip().lower()
     usuario = db.query(Usuario).filter(Usuario.correo == correo_normalizado).first()
 
-    mensaje_generico = {"mensaje": "Si el correo está registrado, recibirás un código de recuperación."}
-
-    # Por seguridad no revelamos si el correo existe o no.
+    # Si el correo no está registrado se dice claramente. Antes se respondía
+    # siempre "si el correo está registrado, recibirás un código", así que el
+    # frontend mostraba "código enviado" y el usuario esperaba para siempre un
+    # correo que nunca iba a llegar (un correo mal escrito o una cuenta que no
+    # existe, como admin@nexustech.com).
     if not usuario:
-        return mensaje_generico
+        print(f"[auth] Recuperación pedida para un correo no registrado: {correo_normalizado}")
+        return {
+            "mensaje": (
+                "No hay ninguna cuenta registrada con ese correo. "
+                "Verifica que esté bien escrito o regístrate primero."
+            ),
+            "correo_registrado": False,
+            "correo_enviado": False,
+        }
 
     codigo = f"{random.randint(100000, 999999)}"
     usuario.reset_code = codigo
     usuario.reset_code_expires = datetime.now(timezone.utc) + timedelta(minutes=10)
     db.commit()
 
-    # Caso 1: no hay credenciales de correo en el servidor. El código queda
-    # guardado en la base de datos y se muestra en la respuesta para que el
-    # flujo funcione aunque el SMTP no esté configurado (modo demostración).
-    if not correo_configurado():
+    # Se intenta enviar el correo siempre que haya credenciales configuradas.
+    if correo_configurado():
+        enviado = enviar_codigo_recuperacion(usuario.correo, usuario.nombre, codigo)
+    else:
         print(f"[auth] Sin credenciales de correo. Código para {usuario.correo}: {codigo}")
-        return {
-            "mensaje": (
-                "El envío automático de correo no está configurado en este servidor. "
-                "Usa el código temporal que se muestra abajo para continuar (modo demostración)."
-            ),
-            "correo_enviado": False,
-            "codigo_temporal": codigo,
-        }
+        enviado = False
 
-    # Caso 2: hay credenciales, se intenta enviar el correo.
-    enviado = enviar_codigo_recuperacion(usuario.correo, usuario.nombre, codigo)
-    if not enviado:
-        print(
-            f"[auth] El correo de recuperación NO se entregó a {usuario.correo}. "
-            "Revisa EMAIL_USER/EMAIL_PASSWORD y los logs [email] del servidor."
-        )
-        return {
-            "mensaje": (
+    # El código también se muestra en pantalla cuando el correo no se pudo
+    # confirmar (modo demostración). Es necesario porque SMTP puede aceptar un
+    # destinatario que no existe y devolver el correo después como rebote: sin
+    # esto el usuario no tendría forma de completar la recuperación.
+    modo_demo = settings.RECUPERACION_MODO_DEMO or not enviado
+
+    if modo_demo:
+        if enviado:
+            mensaje = (
+                "Se envió el código a tu correo. Si no lo ves en unos minutos, "
+                "revisa la carpeta de spam; también puedes usar este código aquí (modo demostración)."
+            )
+        elif correo_configurado():
+            print(
+                f"[auth] El correo de recuperación NO se entregó a {usuario.correo}. "
+                "Revisa EMAIL_USER/EMAIL_PASSWORD y los logs [email] del servidor."
+            )
+            mensaje = (
                 "No se pudo enviar el código por correo en este momento. "
                 "Usa el código temporal que se muestra abajo para continuar (modo demostración)."
-            ),
-            "correo_enviado": False,
+            )
+        else:
+            mensaje = (
+                "El envío automático de correo no está configurado en este servidor. "
+                "Usa el código temporal que se muestra abajo para continuar (modo demostración)."
+            )
+        return {
+            "mensaje": mensaje,
+            "correo_registrado": True,
+            "correo_enviado": enviado,
             "codigo_temporal": codigo,
         }
 
-    return mensaje_generico
+    return {
+        "mensaje": "Si el correo está registrado, recibirás un código de recuperación.",
+        "correo_registrado": True,
+        "correo_enviado": True,
+    }
 
 
 @router.post("/verify-reset-code")
