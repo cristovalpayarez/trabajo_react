@@ -77,9 +77,6 @@ const Header = () => {
             <NavLink to="/quienes-somos" className={linkStyle}>
               ¿Quiénes Somos?
             </NavLink>
-            <NavLink to="/contacto" className={linkStyle}>
-              Contacto
-            </NavLink>
             <NavLink to="/catalogo" className={linkStyle}>
               Catálogo
             </NavLink>
@@ -177,9 +174,6 @@ const Header = () => {
           </NavLink>
           <NavLink to="/quienes-somos" onClick={() => setIsOpen(false)} className="block py-2 text-xl font-bold text-gray-200">
             ¿Quiénes Somos?
-          </NavLink>
-          <NavLink to="/contacto" onClick={() => setIsOpen(false)} className="block py-2 text-xl font-bold text-gray-200">
-            Contacto
           </NavLink>
           <NavLink to="/catalogo" onClick={() => setIsOpen(false)} className="block py-2 text-xl font-bold text-gray-200">
             Catálogo
